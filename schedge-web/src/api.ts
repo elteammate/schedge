@@ -1,0 +1,307 @@
+import {DateTime, Duration} from 'luxon';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+function throwErr<T>(e: any): T {
+    throw e;
+}
+
+function parseISODate(s: string): DateTime {
+    return DateTime.fromISO(s, {setZone: true}).toLocal();
+}
+
+function serializeDate(dt: DateTime): string {
+    return dt.toISO() ?? throwErr(new Error("Failed to serialize DateTime"));
+}
+
+function parseISODuration(s: string): Duration {
+    return Duration.fromISO(s);
+}
+
+function serializeDuration(d: Duration): string {
+    return d.toISO() ?? throwErr(new Error("Failed to serialize Duration"));
+}
+
+type RawBaseTask = {
+    id: number;
+    name: string;
+    description: string | null;
+    color: string;
+    leisure: boolean;
+    dependencies: number[];
+};
+
+type RawFixedTask = RawBaseTask & {
+    type: 'fixed';
+    start: string;
+    end: string;
+};
+
+type RawContinuousTask = RawBaseTask & {
+    type: 'continuous';
+    duration: string;
+    kickoff: string;
+    deadline: string;
+};
+
+type RawProjectTask = RawBaseTask & {
+    type: 'project';
+    duration: string;
+    kickoff: string;
+    deadline: string;
+    timings: {
+        work: string;
+        smallBreak: string;
+        bigBreak: string;
+        numberOfSmallBreaks: number;
+    };
+};
+
+export type RawTask = RawFixedTask | RawContinuousTask | RawProjectTask;
+
+export type RawSlot = {
+    start: string;
+    end: string;
+    task: RawTask;
+};
+
+export type RawState = {
+    userId: number;
+    tasks: RawTask[];
+    slots: RawSlot[];
+}
+
+export type ApiResponse<T> =
+    | { status: 'ok'; result: T }
+    | { status: 'error'; message: string };
+
+export type BaseTask = {
+    id: number;
+    name: string;
+    description: string | null;
+    color: string;
+    leisure: boolean;
+    dependencies: number[];
+};
+
+export type FixedTask = BaseTask & {
+    type: 'fixed';
+    start: DateTime;
+    end: DateTime;
+};
+
+export type ContinuousTask = BaseTask & {
+    type: 'continuous';
+    duration: Duration;
+    kickoff: DateTime;
+    deadline: DateTime;
+};
+
+export type ProjectTask = BaseTask & {
+    type: 'project';
+    duration: Duration;
+    kickoff: DateTime;
+    deadline: DateTime;
+    timings: {
+        work: Duration;
+        smallBreak: Duration;
+        bigBreak: Duration;
+        numberOfSmallBreaks: number;
+    };
+};
+
+export type Task = FixedTask | ContinuousTask | ProjectTask;
+export type Slot = { start: DateTime; end: DateTime; task: Task };
+
+export type State = {
+    tasks: Task[];
+    slots: Slot[];
+    userId: number;
+}
+
+function rawToClientTask(rt: RawTask): Task {
+    const base: BaseTask = {
+        id: rt.id,
+        name: rt.name,
+        description: rt.description,
+        color: rt.color,
+        leisure: rt.leisure,
+        dependencies: rt.dependencies,
+    };
+
+    if (rt.type === 'fixed') {
+        return {
+            ...base,
+            type: 'fixed',
+            start: parseISODate(rt.start),
+            end: parseISODate(rt.end),
+        };
+    } else if (rt.type === 'continuous') {
+        return {
+            ...base,
+            type: 'continuous',
+            duration: parseISODuration(rt.duration),
+            kickoff: parseISODate(rt.kickoff),
+            deadline: parseISODate(rt.deadline),
+        };
+    } else {
+        return {
+            ...base,
+            type: 'project',
+            duration: parseISODuration(rt.duration),
+            kickoff: parseISODate(rt.kickoff),
+            deadline: parseISODate(rt.deadline),
+            timings: {
+                work: parseISODuration(rt.timings.work),
+                smallBreak: parseISODuration(rt.timings.smallBreak),
+                bigBreak: parseISODuration(rt.timings.bigBreak),
+                numberOfSmallBreaks: rt.timings.numberOfSmallBreaks,
+            },
+        };
+    }
+}
+
+function clientToRawTask(t: Task): RawTask {
+    const base = {
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        color: t.color,
+        leisure: t.leisure,
+        dependencies: t.dependencies,
+    };
+
+    if (t.type === 'fixed') {
+        return {
+            ...base,
+            type: 'fixed',
+            start: serializeDate(t.start),
+            end: serializeDate(t.end),
+        };
+    } else if (t.type === 'continuous') {
+        return {
+            ...base,
+            type: 'continuous',
+            duration: serializeDuration(t.duration),
+            kickoff: serializeDate(t.kickoff),
+            deadline: serializeDate(t.deadline),
+        };
+    } else {
+        return {
+            ...base,
+            type: 'project',
+            duration: serializeDuration(t.duration),
+            kickoff: serializeDate(t.kickoff),
+            deadline: serializeDate(t.deadline),
+            timings: {
+                work: serializeDuration(t.timings.work),
+                smallBreak: serializeDuration(t.timings.smallBreak),
+                bigBreak: serializeDuration(t.timings.bigBreak),
+                numberOfSmallBreaks: t.timings.numberOfSmallBreaks,
+            },
+        };
+    }
+}
+
+export function rawToClientSlot(raw: RawSlot): Slot {
+    return {
+        start: parseISODate(raw.start),
+        end: parseISODate(raw.end),
+        task: rawToClientTask(raw.task),
+    };
+}
+
+export function clientToRawSlot(slot: Slot): RawSlot {
+    return {
+        start: serializeDate(slot.start),
+        end: serializeDate(slot.end),
+        task: clientToRawTask(slot.task),
+    };
+}
+
+export async function getTasks(userId: number): Promise<Task[]> {
+    const res: Response = await fetch(`${API_BASE}/user/${userId}/task`).catch(e => throwErr(new Error(e)));
+    const body = (await res.json()) as ApiResponse<RawTask[]>;
+    if (body.status !== 'ok') throw new Error(body.message);
+    return body.result.map(rawToClientTask);
+}
+
+export async function getTask(userId: number, taskId: number): Promise<Task> {
+    const res = await fetch(`${API_BASE}/user/${userId}/task/${taskId}`);
+    const body = (await res.json()) as ApiResponse<RawTask>;
+    if (body.status !== 'ok') throw new Error(body.message);
+    return rawToClientTask(body.result);
+}
+
+export async function createTask(userId: number, task: Task): Promise<Task> {
+    const raw = clientToRawTask(task);
+    const res = await fetch(`${API_BASE}/user/${userId}/task`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(raw),
+    });
+    const body = (await res.json()) as ApiResponse<RawTask>;
+    if (body.status !== 'ok') throw new Error(body.message);
+    return rawToClientTask(body.result);
+}
+
+export async function updateTask(
+    userId: number,
+    taskId: number,
+    task: Task,
+): Promise<Task> {
+    const raw = clientToRawTask(task);
+    const res = await fetch(`${API_BASE}/user/${userId}/task/${taskId}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(raw),
+    });
+    const body = (await res.json()) as ApiResponse<RawTask>;
+    if (body.status !== 'ok') throw new Error(body.message);
+    return rawToClientTask(body.result);
+}
+
+export async function deleteTask(
+    userId: number,
+    taskId: number,
+): Promise<Task> {
+    const res = await fetch(`${API_BASE}/user/${userId}/task/${taskId}`, {
+        method: 'DELETE',
+    });
+    const body = (await res.json()) as ApiResponse<RawTask>;
+    if (body.status !== 'ok') throw new Error(body.message);
+    return rawToClientTask(body.result);
+}
+
+export async function postQueue(
+    userId: number,
+    queue: number[],
+): Promise<number[]> {
+    const res = await fetch(`${API_BASE}/user/${userId}/queue`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(queue),
+    });
+    const body = (await res.json()) as ApiResponse<number[]>;
+    if (body.status !== 'ok') throw new Error(body.message);
+    return body.result;
+}
+
+export async function getSlots(userId: number): Promise<Slot[]> {
+    const res = await fetch(`${API_BASE}/user/${userId}/slot`);
+    const body = (await res.json()) as ApiResponse<RawSlot[]>;
+    if (body.status !== 'ok') throw new Error(body.message);
+    return body.result.map(rawToClientSlot);
+}
+
+export async function getState(userId: number): Promise<State> {
+    const res = await fetch(`${API_BASE}/user/${userId}/state`);
+    const body = (await res.json()) as ApiResponse<RawState>;
+    if (body.status !== 'ok') throw new Error(body.message);
+    console.log(body.result)
+    return {
+        tasks: body.result.tasks.map(rawToClientTask),
+        slots: body.result.slots.map(rawToClientSlot),
+        userId: body.result.userId,
+    };
+}
