@@ -11,7 +11,12 @@ function parseISODate(s: string): DateTime {
 }
 
 function serializeDate(dt: DateTime): string {
-    return dt.toISO() ?? throwErr(new Error("Failed to serialize DateTime"));
+    const iso = dt.toISO();
+    if (!iso) {
+        console.error("Failed to serialize DateTime:", dt);
+        throwErr(new Error("Failed to serialize DateTime"));
+    }
+    return <string>iso;
 }
 
 function parseISODuration(s: string): Duration {
@@ -19,9 +24,13 @@ function parseISODuration(s: string): Duration {
 }
 
 function serializeDuration(d: Duration): string {
-    return d.toISO() ?? throwErr(new Error("Failed to serialize Duration"));
+    const iso = d.toISO();
+    if (!iso) {
+        console.error("Failed to serialize Duration:", d);
+        throwErr(new Error("Failed to serialize Duration"));
+    }
+    return <string>iso;
 }
-
 type RawBaseTask = {
     id: number;
     name: string;
@@ -29,6 +38,7 @@ type RawBaseTask = {
     color: string;
     leisure: boolean;
     dependencies: number[];
+    nonce: number;
 };
 
 type RawFixedTask = RawBaseTask & {
@@ -82,6 +92,7 @@ export type BaseTask = {
     color: string;
     leisure: boolean;
     dependencies: number[];
+    nonce: number;
 };
 
 export type FixedTask = BaseTask & {
@@ -127,6 +138,7 @@ function rawToClientTask(rt: RawTask): Task {
         color: rt.color,
         leisure: rt.leisure,
         dependencies: rt.dependencies,
+        nonce: rt.nonce,
     };
 
     if (rt.type === 'fixed') {
@@ -169,6 +181,7 @@ function clientToRawTask(t: Task): RawTask {
         color: t.color,
         leisure: t.leisure,
         dependencies: t.dependencies,
+        nonce: t.nonce,
     };
 
     if (t.type === 'fixed') {
@@ -247,11 +260,10 @@ export async function createTask(userId: number, task: Task): Promise<Task> {
 
 export async function updateTask(
     userId: number,
-    taskId: number,
     task: Task,
 ): Promise<Task> {
     const raw = clientToRawTask(task);
-    const res = await fetch(`${API_BASE}/user/${userId}/task/${taskId}`, {
+    const res = await fetch(`${API_BASE}/user/${userId}/task/${task.id}`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(raw),
@@ -294,14 +306,17 @@ export async function getSlots(userId: number): Promise<Slot[]> {
     return body.result.map(rawToClientSlot);
 }
 
+export function rawStateToState(raw: RawState): State {
+    return {
+        tasks: raw.tasks.map(rawToClientTask),
+        slots: raw.slots.map(rawToClientSlot),
+        userId: raw.userId,
+    };
+}
+
 export async function getState(userId: number): Promise<State> {
     const res = await fetch(`${API_BASE}/user/${userId}/state`);
     const body = (await res.json()) as ApiResponse<RawState>;
     if (body.status !== 'ok') throw new Error(body.message);
-    console.log(body.result)
-    return {
-        tasks: body.result.tasks.map(rawToClientTask),
-        slots: body.result.slots.map(rawToClientSlot),
-        userId: body.result.userId,
-    };
+    return rawStateToState(body.result);
 }
