@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schedge-backend
+spec:
+  replicas: {{ .Values.replicaCountBackend | default 1 }}
+  selector:
+    matchLabels:
+      app: schedge-backend
+  template:
+    metadata:
+      labels:
+        app: schedge-backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.image.backend.repository }}:{{ .Values.image.backend.tag }}"
+          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.backend.port }}
+          env:
+            - name: ENVIRONMENT
+              value: {{ .Values.environment | quote }}

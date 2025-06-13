@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schedge-web
+spec:
+  replicas: {{ .Values.replicaCountWeb }}
+  selector:
+    matchLabels:
+      app: schedge-web
+  template:
+    metadata:
+      labels:
+        app: schedge-web
+    spec:
+      containers:
+          - name: web
+            image: "{{ .Values.image.web.repository }}:{{ .Values.image.web.tag }}"
+            imagePullPolicy: {{ .Values.image.web.pullPolicy }}
+            ports:
+              - containerPort: {{ .Values.service.web.port }}

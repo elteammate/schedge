@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schedge-solver
+spec:
+  replicas: {{ .Values.replicaCountSolver }}
+  selector:
+    matchLabels:
+      app: schedge-solver
+  template:
+    metadata:
+      labels:
+        app: schedge-solver
+    spec:
+      containers:
+          - name: solver
+            image: "{{ .Values.image.solver.repository }}:{{ .Values.image.solver.tag }}"
+            imagePullPolicy: {{ .Values.image.solver.pullPolicy }}
+            ports:
+              - containerPort: {{ .Values.service.solver.port }}

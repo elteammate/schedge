@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: schedge-web
+spec:
+  type: {{ .Values.service.web.type }}
+  ports:
+    - port: {{ .Values.service.web.port }}
+      targetPort: {{ .Values.service.web.port }}
+  selector:
+    app: schedge-web

@@ -1,0 +1,28 @@
+replicaCountSolver: 2
+replicaCountWeb: 2
+replicaCountBackend: 2
+
+image:
+  solver:
+    repository: ghcr.io/elteammate/schedge-solver
+    tag: latest
+    pullPolicy: IfNotPresent
+  backend:
+    repository: ghcr.io/elteammate/schedge-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  web:
+    repository: ghcr.io/elteammate/schedge-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+
+service:
+  solver:
+    port: 6000
+    type: ClusterIP
+  backend:
+    port: 5000
+    type: ClusterIP
+  web:
+    port: 80
+    type: ClusterIP
