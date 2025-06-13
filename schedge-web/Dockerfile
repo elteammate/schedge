@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY schedge-web/ ./
 
+RUN npm install
 RUN npm run build
 
 FROM nginx:stable-alpine

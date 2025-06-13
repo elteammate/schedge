@@ -1,6 +1,6 @@
 import {createEffect, Match, Switch} from 'solid-js';
 import {createStore, reconcile} from 'solid-js/store';
-import api, {Slot, Task} from "./api.ts";
+import api, {API_BASE, Slot, Task} from "./api.ts";
 import WeekCalendar from "./WeekCalendar.tsx";
 import {FileX2} from "lucide-solid";
 import TaskList from "./TaskList.tsx";
@@ -49,7 +49,8 @@ function App() {
     let retryInterval = 1000;
 
     const connectWebSocket = () => {
-      websocket = new WebSocket(`ws://localhost:5000/user/${userId()}/ws`);
+      const apiWs = API_BASE.replace(/^https?:\/\//, 'ws://');
+      websocket = new WebSocket(`${apiWs}/user/${userId()}/ws`);
 
       websocket.onopen = () => {
         retryInterval = 1000;
