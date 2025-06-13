@@ -31,13 +31,14 @@ function serializeDuration(d: Duration): string {
     }
     return <string>iso;
 }
+
 type RawBaseTask = {
-    id: number;
+    id: string;
     name: string;
     description: string | null;
     color: string;
     leisure: boolean;
-    dependencies: number[];
+    dependencies: string[];
     nonce: number;
 };
 
@@ -86,12 +87,12 @@ export type ApiResponse<T> =
     | { status: 'error'; message: string };
 
 export type BaseTask = {
-    id: number;
+    id: string;
     name: string;
     description: string | null;
     color: string;
     leisure: boolean;
-    dependencies: number[];
+    dependencies: string[];
     nonce: number;
 };
 
@@ -216,7 +217,7 @@ function clientToRawTask(t: Task): RawTask {
     }
 }
 
-export function rawToClientSlot(raw: RawSlot): Slot {
+function rawToClientSlot(raw: RawSlot): Slot {
     return {
         start: parseISODate(raw.start),
         end: parseISODate(raw.end),
@@ -224,99 +225,115 @@ export function rawToClientSlot(raw: RawSlot): Slot {
     };
 }
 
-export function clientToRawSlot(slot: Slot): RawSlot {
-    return {
-        start: serializeDate(slot.start),
-        end: serializeDate(slot.end),
-        task: clientToRawTask(slot.task),
-    };
-}
+const api = {
+    async getTasks(userId: number): Promise<Task[]> {
+        const res: Response = await fetch(`${API_BASE}/user/${userId}/task`).catch(e => throwErr(new Error(e)));
+        const body = (await res.json()) as ApiResponse<RawTask[]>;
+        if (body.status !== 'ok') throw new Error(body.message);
+        return body.result.map(rawToClientTask);
+    },
 
-export async function getTasks(userId: number): Promise<Task[]> {
-    const res: Response = await fetch(`${API_BASE}/user/${userId}/task`).catch(e => throwErr(new Error(e)));
-    const body = (await res.json()) as ApiResponse<RawTask[]>;
-    if (body.status !== 'ok') throw new Error(body.message);
-    return body.result.map(rawToClientTask);
-}
+    async getTask(userId: number, taskId: string): Promise<Task> {
+        const res = await fetch(`${API_BASE}/user/${userId}/task/${taskId}`);
+        const body = (await res.json()) as ApiResponse<RawTask>;
+        if (body.status !== 'ok') throw new Error(body.message);
+        return rawToClientTask(body.result);
+    },
 
-export async function getTask(userId: number, taskId: number): Promise<Task> {
-    const res = await fetch(`${API_BASE}/user/${userId}/task/${taskId}`);
-    const body = (await res.json()) as ApiResponse<RawTask>;
-    if (body.status !== 'ok') throw new Error(body.message);
-    return rawToClientTask(body.result);
-}
+    async createTask(userId: number, task: Task): Promise<Task> {
+        const raw = clientToRawTask(task);
+        const res = await fetch(`${API_BASE}/user/${userId}/task`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(raw),
+        });
+        const body = (await res.json()) as ApiResponse<RawTask>;
+        if (body.status !== 'ok') throw new Error(body.message);
+        return rawToClientTask(body.result);
+    },
 
-export async function createTask(userId: number, task: Task): Promise<Task> {
-    const raw = clientToRawTask(task);
-    const res = await fetch(`${API_BASE}/user/${userId}/task`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(raw),
-    });
-    const body = (await res.json()) as ApiResponse<RawTask>;
-    if (body.status !== 'ok') throw new Error(body.message);
-    return rawToClientTask(body.result);
-}
+    async updateTask(
+        userId: number,
+        task: Task,
+    ): Promise<Task> {
+        const raw = clientToRawTask(task);
+        const res = await fetch(`${API_BASE}/user/${userId}/task/${task.id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(raw),
+        });
+        const body = (await res.json()) as ApiResponse<RawTask>;
+        if (body.status !== 'ok') throw new Error(body.message);
+        return rawToClientTask(body.result);
+    },
 
-export async function updateTask(
-    userId: number,
-    task: Task,
-): Promise<Task> {
-    const raw = clientToRawTask(task);
-    const res = await fetch(`${API_BASE}/user/${userId}/task/${task.id}`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(raw),
-    });
-    const body = (await res.json()) as ApiResponse<RawTask>;
-    if (body.status !== 'ok') throw new Error(body.message);
-    return rawToClientTask(body.result);
-}
+    async deleteTask(
+        userId: number,
+        taskId: string,
+    ): Promise<void> {
+        const res = await fetch(`${API_BASE}/user/${userId}/task/${taskId}`, {
+            method: 'DELETE',
+        });
+        const body = (await res.json()) as ApiResponse<RawTask>;
+        if (body.status !== 'ok') throw new Error(body.message);
+    },
 
-export async function deleteTask(
-    userId: number,
-    taskId: number,
-): Promise<Task> {
-    const res = await fetch(`${API_BASE}/user/${userId}/task/${taskId}`, {
-        method: 'DELETE',
-    });
-    const body = (await res.json()) as ApiResponse<RawTask>;
-    if (body.status !== 'ok') throw new Error(body.message);
-    return rawToClientTask(body.result);
-}
+    async postQueue(
+        userId: number,
+        queue: number[],
+    ): Promise<number[]> {
+        const res = await fetch(`${API_BASE}/user/${userId}/queue`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(queue),
+        });
+        const body = (await res.json()) as ApiResponse<number[]>;
+        if (body.status !== 'ok') throw new Error(body.message);
+        return body.result;
+    },
 
-export async function postQueue(
-    userId: number,
-    queue: number[],
-): Promise<number[]> {
-    const res = await fetch(`${API_BASE}/user/${userId}/queue`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(queue),
-    });
-    const body = (await res.json()) as ApiResponse<number[]>;
-    if (body.status !== 'ok') throw new Error(body.message);
-    return body.result;
-}
+    async getSlots(userId: number): Promise<Slot[]> {
+        const res = await fetch(`${API_BASE}/user/${userId}/slot`);
+        const body = (await res.json()) as ApiResponse<RawSlot[]>;
+        if (body.status !== 'ok') throw new Error(body.message);
+        return body.result.map(rawToClientSlot);
+    },
 
-export async function getSlots(userId: number): Promise<Slot[]> {
-    const res = await fetch(`${API_BASE}/user/${userId}/slot`);
-    const body = (await res.json()) as ApiResponse<RawSlot[]>;
-    if (body.status !== 'ok') throw new Error(body.message);
-    return body.result.map(rawToClientSlot);
-}
+    rawStateToState(raw: RawState): State {
+        return {
+            tasks: raw.tasks.map(rawToClientTask),
+            slots: raw.slots.map(rawToClientSlot),
+            userId: raw.userId,
+        };
+    },
 
-export function rawStateToState(raw: RawState): State {
-    return {
-        tasks: raw.tasks.map(rawToClientTask),
-        slots: raw.slots.map(rawToClientSlot),
-        userId: raw.userId,
-    };
-}
+    async getState(userId: number): Promise<State> {
+        const res = await fetch(`${API_BASE}/user/${userId}/state`);
+        const body = (await res.json()) as ApiResponse<RawState>;
+        if (body.status !== 'ok') throw new Error(body.message);
+        return this.rawStateToState(body.result);
+    },
 
-export async function getState(userId: number): Promise<State> {
-    const res = await fetch(`${API_BASE}/user/${userId}/state`);
-    const body = (await res.json()) as ApiResponse<RawState>;
-    if (body.status !== 'ok') throw new Error(body.message);
-    return rawStateToState(body.result);
-}
+    async enqueueScheduling(userId: number): Promise<void> {
+        const res = await fetch(`${API_BASE}/user/${userId}/compute_slot_request`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({}),
+        });
+        const body = (await res.json()) as ApiResponse<void>;
+        if (body.status !== 'ok') throw new Error(body.message);
+    }
+};
+
+// For testing
+export {
+    rawToClientTask,
+    clientToRawTask,
+    rawToClientSlot,
+    parseISODate,
+    serializeDate,
+    parseISODuration,
+    serializeDuration,
+};
+
+export default api;

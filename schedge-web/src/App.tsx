@@ -1,6 +1,6 @@
 import {createEffect, Match, Switch} from 'solid-js';
 import {createStore, reconcile} from 'solid-js/store';
-import {getState, rawStateToState, Slot, Task} from "./api.ts";
+import api, {Slot, Task} from "./api.ts";
 import WeekCalendar from "./WeekCalendar.tsx";
 import {FileX2} from "lucide-solid";
 import TaskList from "./TaskList.tsx";
@@ -30,7 +30,7 @@ function App() {
 
   createEffect(async () => {
     try {
-      const fetchedState = await getState(userId());
+      const fetchedState = await api.getState(userId());
       setState(reconcile({
         kind: "primary",
         tasks: fetchedState.tasks,
@@ -57,7 +57,7 @@ function App() {
 
       websocket.onmessage = (event) => {
         const rawState = JSON.parse(event.data);
-        const newState = rawStateToState(rawState);
+        const newState = api.rawStateToState(rawState);
         setState(reconcile({
           kind: "primary",
           tasks: newState.tasks,

@@ -1,0 +1,22 @@
+[package]
+name = "schedge-solver-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+chrono = "0.4.41"
+
+[dependencies.schedge-solver]
+path = ".."
+
+[[bin]]
+name = "mcs"
+path = "fuzz_targets/mcs.rs"
+test = false
+doc = false
+bench = false

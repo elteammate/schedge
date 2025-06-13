@@ -1,18 +1,18 @@
 import {createEffect, createSignal, For, Match, Show, Switch} from "solid-js";
 import {PrimaryState} from "./App.tsx";
-import {createTask, Task, updateTask} from "./api.ts";
+import api, {Task} from "./api.ts";
 import {ChevronDown, ChevronUp, CloudCheck, CloudCog} from "lucide-solid";
 import {DateTime, Duration} from "luxon";
 import {userId} from "./userStore.ts";
-import {DurationPicker, InputField, Selector, TimePicker, Button} from "./components.tsx";
+import {DurationPicker, InputField, Selector, TimePicker, Button, Checkbox} from "./components.tsx";
 
-type EditableTask = {
-    id: number;
+export type EditableTask = {
+    id: string;
     name: string;
     description: string | null;
     color: string;
     leisure: boolean;
-    dependencies: number[];
+    dependencies: string[];
     nonce: number;
     type: 'fixed' | 'continuous' | 'project';
     start: DateTime;
@@ -28,7 +28,7 @@ type EditableTask = {
     };
 }
 
-const taskFromEditableTask = (editable: EditableTask): Task => {
+export const taskFromEditableTask = (editable: EditableTask): Task => {
     if (editable.type === 'fixed') {
         return {
             id: editable.id,
@@ -75,7 +75,7 @@ const taskFromEditableTask = (editable: EditableTask): Task => {
     throw new Error("Unknown task type");
 };
 
-const editableTaskFromTask = (task: Task): EditableTask => {
+export const editableTaskFromTask = (task: Task): EditableTask => {
     return {
         id: task.id,
         name: task.name,
@@ -89,7 +89,7 @@ const editableTaskFromTask = (task: Task): EditableTask => {
         end: task.type === 'fixed' ? task.end : DateTime.now(),
         duration: task.type === 'continuous' || task.type === 'project' ? task.duration : Duration.fromMillis(60 * 60 * 1000),
         kickoff: task.type === 'continuous' || task.type === 'project' ? task.kickoff : DateTime.now(),
-        deadline: task.type === 'continuous' || task.type === 'project' ? task.deadline : DateTime.now(),
+        deadline: task.type === 'continuous' || task.type === 'project' ? task.deadline : DateTime.now().plus({days: 1}),
         timings: task.type === 'project' ? task.timings : {
             work: Duration.fromMillis(25 * 60 * 1000),
             smallBreak: Duration.fromMillis(5 * 60 * 1000),
@@ -106,7 +106,7 @@ function TaskItem(props: { task: Task }) {
     const [unsyncedTask, setUnsyncedTask] = createSignal<EditableTask>(editableTaskFromTask(props.task));
     const [editTarget, setEditTarget] = createSignal<EditTarget | null>(null);
     const editedTask = () => taskFromEditableTask(unsyncedTask());
-    const taskSynced = () => unsyncedTask().nonce === props.task.nonce;
+    const taskSynced = () => unsyncedTask().nonce <= props.task.nonce;
     const [_syncTimeout, setSyncTimeout] = createSignal<number | null>(null);
 
     createEffect(() => {
@@ -117,7 +117,7 @@ function TaskItem(props: { task: Task }) {
                 }
                 return setTimeout(() => {
                     const task = editedTask();
-                    updateTask(userId(), task).then();
+                    api.updateTask(userId(), task).then();
                     setSyncTimeout(null);
                 }, 1000);
             });
@@ -131,32 +131,18 @@ function TaskItem(props: { task: Task }) {
         }
     });
 
-    /*
     createEffect(() => {
-        const task = props.task;
-        const editTargetI = editTarget();
-        setUnsyncedTask(t => ({
-            name: editTargetI === "name" ? t.name : task.name,
-            description: editTargetI === "description" ? t.description : task.description,
-            color: task.color,
-            leisure: task.leisure,
-            dependencies: task.dependencies,
-            type: task.type,
-            start: editTargetI === "start" ? t.start : task.type === 'fixed' ? task.start : DateTime.now(),
-            end: editTargetI === "end" ? t.end : task.type === 'fixed' ? task.end : DateTime.now(),
-            duration: editTargetI === "duration" ? t.duration : task.type === 'continuous' || task.type === 'project' ? task.duration : Duration.fromMillis(60 * 60 * 1000),
-            kickoff: editTargetI === "kickoff" ? t.kickoff : task.type === 'continuous' || task.type === 'project' ? task.kickoff : DateTime.now(),
-            deadline: editTargetI === "deadline" ? t.deadline : task.type === 'continuous' || task.type === 'project' ? task.deadline : DateTime.now(),
-            timings: editTargetI === "timings" ? t.timings : task.type === 'project' ? task.timings : {
-                work: Duration.fromMillis(25 * 60 * 1000),
-                smallBreak: Duration.fromMillis(5 * 60 * 1000),
-                bigBreak: Duration.fromMillis(20 * 60 * 1000),
-                numberOfSmallBreaks: 4,
-            },
-            id: task.id,
-        }));
-    });
-     */
+        setUnsyncedTask(prev => {
+            if (prev.nonce <= props.task.nonce) {
+                return {
+                    ...prev,
+                    ...props.task,
+                };
+            } else {
+                return prev;
+            }
+        })
+    })
 
     createEffect(() => {
         if (!expanded()) {
@@ -246,6 +232,11 @@ function TaskItem(props: { task: Task }) {
                         value={["fixed", "continuous", "project"].indexOf(unsyncedTask().type)}
                         onChange={i => updateTask({ type: ["fixed", "continuous", "project"][i] as any })}/>
 
+                    <Checkbox
+                        label={"Leisure?"}
+                        checked={unsyncedTask().leisure}
+                        onChange={d => updateTask({ leisure: d })}/>
+
                     <Switch>
                         <Match when={unsyncedTask().type === "fixed"}>
                             <TimePicker
@@ -315,6 +306,14 @@ function TaskItem(props: { task: Task }) {
                                 placeholder="Number of Small Breaks"/>
                         </Match>
                     </Switch>
+
+                    <div class="flex justify-end">
+                        <Button label={"Delete"} onClick={() => {
+                            if (confirm("Are you sure you want to delete this task?")) {
+                                api.deleteTask(userId(), props.task.id).catch(e => console.error(e))
+                            }
+                        }}/>
+                    </div>
                 </Show>
             </div>
         </div>
@@ -326,10 +325,10 @@ function TaskList(props: {
 }) {
     return <div class="p-4 bg-gray-900 text-gray-100 h-full overflow-y-auto">
         <h2 class="text-xl font-bold mb-4 w-full text-center">Your tasks</h2>
-        <div class="flex w-full justify-center mb-4">
+        <div class="flex w-full justify-center mb-4 gap-4">
             <Button label="Add task" onClick={() => {
-                createTask(userId(), ({
-                    id: 0,
+                api.createTask(userId(), ({
+                    id: "",
                     name: "New Task",
                     description: null,
                     color: "#4A90E2",
@@ -339,10 +338,17 @@ function TaskList(props: {
                     start: DateTime.now().startOf('hour').plus({hours: 1}),
                     end: DateTime.now().plus({hours: 2}),
                     nonce: 1,
-                })).then(task => {
-                    props.state.tasks.push(task);
+                })).then(_task => {
+                    // props.setState("tasks", tasks => [...tasks, task])
                 }).catch(err => {
                     console.error("Failed to create task:", err);
+                });
+            }}/>
+            <Button label="Schedule!" onClick={() => {
+                api.enqueueScheduling(userId()).then(() => {
+                    // no-op
+                }).catch(err => {
+                    console.error("Failed to schedule tasks:", err);
                 });
             }}/>
         </div>

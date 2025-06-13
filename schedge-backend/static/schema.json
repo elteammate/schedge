@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "RawBaseTask": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": ["string", "null"] },
+        "color": { "type": "string" },
+        "leisure": { "type": "boolean" },
+        "dependencies": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "nonce": { "type": "number" }
+      },
+      "required": ["id", "name", "color", "leisure", "dependencies", "nonce"]
+    },
+    "RawFixedTask": {
+      "allOf": [
+        { "$ref": "#/definitions/RawBaseTask" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "fixed" },
+            "start": { "type": "string", "format": "date-time" },
+            "end": { "type": "string", "format": "date-time" }
+          },
+          "required": ["type", "start", "end"]
+        }
+      ]
+    },
+    "RawContinuousTask": {
+      "allOf": [
+        { "$ref": "#/definitions/RawBaseTask" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "continuous" },
+            "duration": { "type": "string" },
+            "kickoff": { "type": "string", "format": "date-time" },
+            "deadline": { "type": "string", "format": "date-time" }
+          },
+          "required": ["type", "duration", "kickoff", "deadline"]
+        }
+      ]
+    },
+    "RawProjectTask": {
+      "allOf": [
+        { "$ref": "#/definitions/RawBaseTask" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "project" },
+            "duration": { "type": "string" },
+            "kickoff": { "type": "string", "format": "date-time" },
+            "deadline": { "type": "string", "format": "date-time" },
+            "timings": {
+              "type": "object",
+              "properties": {
+                "work": { "type": "string" },
+                "smallBreak": { "type": "string" },
+                "bigBreak": { "type": "string" },
+                "numberOfSmallBreaks": { "type": "number" }
+              },
+              "required": ["work", "smallBreak", "bigBreak", "numberOfSmallBreaks"]
+            }
+          },
+          "required": ["type", "duration", "kickoff", "deadline", "timings"]
+        }
+      ]
+    },
+    "RawTask": {
+      "oneOf": [
+        { "$ref": "#/definitions/RawFixedTask" },
+        { "$ref": "#/definitions/RawContinuousTask" },
+        { "$ref": "#/definitions/RawProjectTask" }
+      ]
+    },
+    "RawSlot": {
+      "type": "object",
+      "properties": {
+        "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" },
+        "task": { "$ref": "#/definitions/RawTask" }
+      },
+      "required": ["start", "end", "task"]
+    },
+    "RawState": {
+      "type": "object",
+      "properties": {
+        "userId": { "type": "number" },
+        "tasks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/RawTask" }
+        },
+        "slots": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/RawSlot" }
+        }
+      },
+      "required": ["userId", "tasks", "slots"]
+    },
+    "ApiResponse_RawState_ok": {
+      "type": "object",
+      "properties": {
+        "status": { "const": "ok" },
+        "result": { "$ref": "#/definitions/RawState" }
+      },
+      "required": ["status", "result"]
+    },
+    "ApiResponse_error": {
+      "type": "object",
+      "properties": {
+        "status": { "const": "error" },
+        "message": { "type": "string" }
+      },
+      "required": ["status", "message"]
+    },
+    "ApiResponse_RawState": {
+      "oneOf": [
+        { "$ref": "#/definitions/ApiResponse_RawState_ok" },
+        { "$ref": "#/definitions/ApiResponse_error" }
+      ]
+    }
+  }
+}
