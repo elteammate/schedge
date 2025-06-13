@@ -177,21 +177,21 @@ jobs:
 
       - name: Build and push backend image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/schedge-backend:${{ github.sha }} -f schedge-backend/Dockerfile schedge-backend
+          docker build -t ghcr.io/${{ github.repository_owner }}/schedge-backend:${{ github.sha }} -f schedge-backend/Dockerfile .
           docker tag ghcr.io/${{ github.repository_owner }}/schedge-backend:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/schedge-backend:latest
           docker push ghcr.io/${{ github.repository_owner }}/schedge-backend:${{ github.sha }}
           docker push ghcr.io/${{ github.repository_owner }}/schedge-backend:latest
 
       - name: Build and push frontend image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/schedge-frontend:${{ github.sha }} -f schedge-web/Dockerfile schedge-web
+          docker build -t ghcr.io/${{ github.repository_owner }}/schedge-frontend:${{ github.sha }} -f schedge-web/Dockerfile .
           docker tag ghcr.io/${{ github.repository_owner }}/schedge-frontend:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/schedge-frontend:latest
           docker push ghcr.io/${{ github.repository_owner }}/schedge-frontend:${{ github.sha }}
           docker push ghcr.io/${{ github.repository_owner }}/schedge-frontend:latest
 
       - name: Build and push solver image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/schedge-solver:${{ github.sha }} -f schedge-solver/Dockerfile schedge-solver
+          docker build -t ghcr.io/${{ github.repository_owner }}/schedge-solver:${{ github.sha }} -f schedge-solver/Dockerfile .
           docker tag ghcr.io/${{ github.repository_owner }}/schedge-solver:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/schedge-solver:latest
           docker push ghcr.io/${{ github.repository_owner }}/schedge-solver:${{ github.sha }}
           docker push ghcr.io/${{ github.repository_owner }}/schedge-solver:latest
