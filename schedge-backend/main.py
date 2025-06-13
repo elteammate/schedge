@@ -24,6 +24,8 @@ dotenv.load_dotenv()
 MONGO_URI = os.environ.get("MONGO_URI")
 DB_NAME = os.environ.get("DB_NAME", "schedge")
 SOLVER_SERVER_URL = os.environ.get("SOLVER_SERVER_URL")
+BACKEND_HOST_ADDRESS = os.environ.get("BACKEND_HOST_ADDRESS", "localhost")
+BACKEND_PORT = os.environ.get("BACKEND_PORT", "5000")
 
 # Constants for limits
 MAX_TASKS_PER_USER = 500  # Maximum number of tasks a user can create
@@ -854,4 +856,4 @@ for route in list(app.router.routes()):
     cors.add(route)
 
 if __name__ == "__main__":
-    web.run_app(app, port=5000)
+    web.run_app(app, host=BACKEND_HOST_ADDRESS, port=int(BACKEND_PORT))

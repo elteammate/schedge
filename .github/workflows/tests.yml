@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install backend dependencies
+        run: |
+          cd schedge-backend
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run pytest
+        run: |
+          cd schedge-backend
+          pytest --maxfail=1 --disable-warnings -q
+
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    needs: backend-tests
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install frontend dependencies
+        run: |
+          cd schedge-web
+          npm ci
+      - name: Run Vitest
+        run: |
+          cd schedge-web
+          npm test -- --ci
+
+  solver-tests:
+    name: Solver (Rust) Tests
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions/setup-rust@v2
+        with:
+          rust-version: '1.89.0'
+      - name: Run cargo tests
+        run: |
+          cd schedge-solver
+          cargo test --workspace --quiet
+
+  solver-fuzzing:
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_FUZZ_VERSION: 0.12.0
+      FUZZ_TIME: 300
+
+    strategy:
+      matrix:
+        include:
+          - fuzz_target: mcs
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install nightly
+      - run: rustup default nightly
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.tool_cache }}/cargo-fuzz
+          key: cargo-fuzz-bin-${{ env.CARGO_FUZZ_VERSION }}
+
+      - run: cd schedge-solver
+      - run: echo "${{ runner.tool_cache }}/cargo-fuzz/bin" >> $GITHUB_PATH
+      - run: cargo install --root "${{ runner.tool_cache }}/cargo-fuzz" --version ${{ env.CARGO_FUZZ_VERSION }} cargo-fuzz --locked
+
+      - run: cargo fuzz build ${{ matrix.fuzz_target }}
+      - run: cargo fuzz run ${{ matrix.fuzz_target }} -- -max_total_time=${{ env.FUZZ_TIME }}
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: fuzzing-artifacts-${{ matrix.fuzz_target }}-${{ github.sha }}
+          path: fuzz/artifacts

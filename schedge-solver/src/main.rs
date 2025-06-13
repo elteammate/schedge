@@ -3,6 +3,7 @@ mod duration;
 use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
 use chrono::{DateTime, Timelike, Utc};
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::str::FromStr;
 use smol_str::SmolStr;
 use schedge_solver::{monte_carlo_schedule, ProjectTimings, Slot, Task};
@@ -174,8 +175,11 @@ async fn schedule(raw_tasks: web::Json<Vec<RawTask>>) -> impl Responder {
 async fn main() -> std::io::Result<()> {
     env_logger::init();
     info!("Starting Schedge Solver server...");
+
+    let bind_addr = env::var("BIND_ADDR").unwrap_or_else(|_| "127.0.0.1:6000".to_string());
+
     HttpServer::new(|| App::new().service(schedule))
-        .bind(("127.0.0.1", 6000))?
+        .bind(&bind_addr)?
         .run()
         .await
 }
