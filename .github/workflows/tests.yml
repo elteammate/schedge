@@ -152,4 +152,4 @@ jobs:
 
       - name: Run system API tests
         run: |
-          pytest schedge/tests/test_system_api.py
+          pytest tests/test_system_api.py
