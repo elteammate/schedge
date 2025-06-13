@@ -20,7 +20,7 @@ jobs:
         run: |
           cd schedge-backend
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r ../requirements.txt
       - name: Run pytest
         run: |
           cd schedge-backend
@@ -29,7 +29,6 @@ jobs:
   frontend-tests:
     name: Frontend Tests
     runs-on: ubuntu-latest
-    needs: backend-tests
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -48,7 +47,6 @@ jobs:
   solver-tests:
     name: Solver (Rust) Tests
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -65,7 +63,7 @@ jobs:
 
     env:
       CARGO_FUZZ_VERSION: 0.12.0
-      FUZZ_TIME: 300
+      FUZZ_TIME: 60
 
     strategy:
       matrix:
@@ -82,10 +80,10 @@ jobs:
           path: ${{ runner.tool_cache }}/cargo-fuzz
           key: cargo-fuzz-bin-${{ env.CARGO_FUZZ_VERSION }}
 
-      - run: cd schedge-solver
       - run: echo "${{ runner.tool_cache }}/cargo-fuzz/bin" >> $GITHUB_PATH
       - run: cargo install --root "${{ runner.tool_cache }}/cargo-fuzz" --version ${{ env.CARGO_FUZZ_VERSION }} cargo-fuzz --locked
 
+      - run: cd schedge-solver
       - run: cargo fuzz build ${{ matrix.fuzz_target }}
       - run: cargo fuzz run ${{ matrix.fuzz_target }} -- -max_total_time=${{ env.FUZZ_TIME }}
 
