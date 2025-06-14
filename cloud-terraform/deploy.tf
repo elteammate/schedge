@@ -61,6 +61,10 @@ resource "yandex_mdb_mongodb_user" "schedge-mongo-user" {
   cluster_id = yandex_mdb_mongodb_cluster.schedge-mongo.id
   name       = var.mongo_username
   password   = var.mongo_password
+  permission {
+    database_name = yandex_mdb_mongodb_database.schedge-mongo-db.name
+    roles = ["readWrite", "mdbDbAdmin"]
+  }
 }
 
 resource "yandex_kubernetes_cluster" "schedge-k8s-cluster" {

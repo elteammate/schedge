@@ -27,3 +27,5 @@ spec:
                 secretKeyRef:
                   name: mongodb-url
                   key: url
+            - name: SOLVER_SERVER_URL
+              value: "http://schedge-solver.default.svc.cluster.local:6000/schedule"
