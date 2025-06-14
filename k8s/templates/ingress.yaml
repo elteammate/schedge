@@ -3,6 +3,7 @@ kind: Ingress
 metadata:
   name: schedge-ingress
 spec:
+  ingressClassName: nginx
   rules:
     - http:
         paths:

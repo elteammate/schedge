@@ -15,6 +15,5 @@ spec:
       containers:
           - name: solver
             image: "{{ .Values.image.solver.repository }}:{{ .Values.image.solver.tag }}"
-            imagePullPolicy: {{ .Values.image.solver.pullPolicy }}
             ports:
               - containerPort: {{ .Values.service.solver.port }}

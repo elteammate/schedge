@@ -15,9 +15,15 @@ spec:
       containers:
         - name: backend
           image: "{{ .Values.image.backend.repository }}:{{ .Values.image.backend.tag }}"
-          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.backend.port }}
           env:
             - name: BACKEND_HOST_ADDRESS
               value: 0.0.0.0
+            - name: BACKEND_PORT
+              value: "{{ .Values.service.backend.port }}"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-url
+                  key: url

@@ -6,15 +6,12 @@ image:
   solver:
     repository: ghcr.io/elteammate/schedge-solver
     tag: latest
-    pullPolicy: IfNotPresent
   backend:
     repository: ghcr.io/elteammate/schedge-backend
     tag: latest
-    pullPolicy: IfNotPresent
   web:
     repository: ghcr.io/elteammate/schedge-frontend
     tag: latest
-    pullPolicy: IfNotPresent
 
 service:
   solver:
@@ -24,7 +21,7 @@ service:
     port: 5000
     type: ClusterIP
   web:
-    port: 8000
+    port: 80
     type: ClusterIP
 
 environment:
