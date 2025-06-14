@@ -19,5 +19,5 @@ spec:
           ports:
             - containerPort: {{ .Values.service.backend.port }}
           env:
-            - name: ENVIRONMENT
-              value: {{ .Values.environment | quote }}
+            - name: BACKEND_HOST_ADDRESS
+              value: 0.0.0.0

@@ -50,7 +50,7 @@ function App() {
 
     const connectWebSocket = () => {
       const apiWs = API_BASE.replace(/^https?:\/\//, 'ws://');
-      websocket = new WebSocket(`${apiWs}/user/${userId()}/ws`);
+      websocket = new WebSocket(`${apiWs}/api/v0/user/${userId()}/ws`);
 
       websocket.onopen = () => {
         retryInterval = 1000;

@@ -3,7 +3,7 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 COPY schedge-web/ ./
-ENV VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=/
 
 RUN rm .env && npm install
 RUN npm run build

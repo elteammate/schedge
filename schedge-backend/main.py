@@ -833,15 +833,15 @@ async def websocket_handler(request):
 
 
 app = web.Application()
-app.router.add_get("/user/{user_id}/state", route_user_state)
-app.router.add_get("/user/{user_id}/task", route_user_tasks)
-app.router.add_get("/user/{user_id}/task/{task_id}", route_user_task)
-app.router.add_post("/user/{user_id}/task", route_user_task_create)
-app.router.add_put("/user/{user_id}/task/{task_id}", route_user_task_update)
-app.router.add_delete("/user/{user_id}/task/{task_id}", route_user_task_delete)
-app.router.add_get("/user/{user_id}/slot", route_user_slots)
-app.router.add_post("/user/{user_id}/compute_slot_request", route_user_compute_slot_request)
-app.router.add_get("/user/{user_id}/ws", websocket_handler)
+app.router.add_get("/api/v0/user/{user_id}/state", route_user_state)
+app.router.add_get("/api/v0/user/{user_id}/task", route_user_tasks)
+app.router.add_get("/api/v0/user/{user_id}/task/{task_id}", route_user_task)
+app.router.add_post("/api/v0/user/{user_id}/task", route_user_task_create)
+app.router.add_put("/api/v0/user/{user_id}/task/{task_id}", route_user_task_update)
+app.router.add_delete("/api/v0/user/{user_id}/task/{task_id}", route_user_task_delete)
+app.router.add_get("/api/v0/user/{user_id}/slot", route_user_slots)
+app.router.add_post("/api/v0/user/{user_id}/compute_slot_request", route_user_compute_slot_request)
+app.router.add_get("/api/v0/user/{user_id}/ws", websocket_handler)
 
 cors = aiohttp_cors.setup(app, defaults={
     "*": aiohttp_cors.ResourceOptions(

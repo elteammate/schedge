@@ -1,7 +1,7 @@
 import pytest
 import requests
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:5000/api/v0"
 
 @pytest.fixture(scope="module")
 def user_id():

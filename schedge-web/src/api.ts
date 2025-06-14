@@ -227,14 +227,14 @@ function rawToClientSlot(raw: RawSlot): Slot {
 
 const api = {
     async getTasks(userId: number): Promise<Task[]> {
-        const res: Response = await fetch(`${API_BASE}/user/${userId}/task`).catch(e => throwErr(new Error(e)));
+        const res: Response = await fetch(`${API_BASE}/api/v0/user/${userId}/task`).catch(e => throwErr(new Error(e)));
         const body = (await res.json()) as ApiResponse<RawTask[]>;
         if (body.status !== 'ok') throw new Error(body.message);
         return body.result.map(rawToClientTask);
     },
 
     async getTask(userId: number, taskId: string): Promise<Task> {
-        const res = await fetch(`${API_BASE}/user/${userId}/task/${taskId}`);
+        const res = await fetch(`${API_BASE}/api/v0/user/${userId}/task/${taskId}`);
         const body = (await res.json()) as ApiResponse<RawTask>;
         if (body.status !== 'ok') throw new Error(body.message);
         return rawToClientTask(body.result);
@@ -242,7 +242,7 @@ const api = {
 
     async createTask(userId: number, task: Task): Promise<Task> {
         const raw = clientToRawTask(task);
-        const res = await fetch(`${API_BASE}/user/${userId}/task`, {
+        const res = await fetch(`${API_BASE}/api/v0/user/${userId}/task`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(raw),
@@ -257,7 +257,7 @@ const api = {
         task: Task,
     ): Promise<Task> {
         const raw = clientToRawTask(task);
-        const res = await fetch(`${API_BASE}/user/${userId}/task/${task.id}`, {
+        const res = await fetch(`${API_BASE}/api/v0/user/${userId}/task/${task.id}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(raw),
@@ -271,7 +271,7 @@ const api = {
         userId: number,
         taskId: string,
     ): Promise<void> {
-        const res = await fetch(`${API_BASE}/user/${userId}/task/${taskId}`, {
+        const res = await fetch(`${API_BASE}/api/v0/user/${userId}/task/${taskId}`, {
             method: 'DELETE',
         });
         const body = (await res.json()) as ApiResponse<RawTask>;
@@ -282,7 +282,7 @@ const api = {
         userId: number,
         queue: number[],
     ): Promise<number[]> {
-        const res = await fetch(`${API_BASE}/user/${userId}/queue`, {
+        const res = await fetch(`${API_BASE}/api/v0/user/${userId}/queue`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(queue),
@@ -293,7 +293,7 @@ const api = {
     },
 
     async getSlots(userId: number): Promise<Slot[]> {
-        const res = await fetch(`${API_BASE}/user/${userId}/slot`);
+        const res = await fetch(`${API_BASE}/api/v0/user/${userId}/slot`);
         const body = (await res.json()) as ApiResponse<RawSlot[]>;
         if (body.status !== 'ok') throw new Error(body.message);
         return body.result.map(rawToClientSlot);
@@ -308,14 +308,14 @@ const api = {
     },
 
     async getState(userId: number): Promise<State> {
-        const res = await fetch(`${API_BASE}/user/${userId}/state`);
+        const res = await fetch(`${API_BASE}/api/v0/user/${userId}/state`);
         const body = (await res.json()) as ApiResponse<RawState>;
         if (body.status !== 'ok') throw new Error(body.message);
         return this.rawStateToState(body.result);
     },
 
     async enqueueScheduling(userId: number): Promise<void> {
-        const res = await fetch(`${API_BASE}/user/${userId}/compute_slot_request`, {
+        const res = await fetch(`${API_BASE}/api/v0/user/${userId}/compute_slot_request`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({}),

@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:latest
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  solver:
+    build:
+      context: .
+      dockerfile: schedge-solver/Dockerfile
+    environment:
+      BIND_ADDR: "0.0.0.0:6000"
+    ports:
+      - "6000:6000"
+
+  backend:
+    build:
+      context: .
+      dockerfile: schedge-backend/Dockerfile
+    environment:
+      MONGO_URI: "mongodb://mongo:27017/schedge"
+      DB_NAME: "schedge"
+      SOLVER_SERVER_URL: "http://solver:6000"
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongo
+      - solver
+
+  frontend:
+    build:
+      context: .
+      dockerfile: schedge-web/Dockerfile
+    ports:
+      - "8000:80"
+    depends_on:
+      - backend
